@@ -32,7 +32,7 @@ var ServerError = httpResponse{Code: 500,
 	Type: "text/html",
 	Body: readAsset("./public/500.html")}
 
-func responseMsg(res httpResponse) []byte {
+func responseToBytes(res httpResponse) []byte {
 	msgLines := []string{fmt.Sprintf("HTTP/1.1 %d", res.Code),
 		"Date: " + time.Now().String(),
 		"Server: \"Golang SimpleHTTPServer/0.1\"",
@@ -61,7 +61,7 @@ func Handle(req httpRequest) []byte {
   case "GET":
     return handlePath(req.Target)
   default:
-    return responseMsg(BadRequest)
+    return responseToBytes(BadRequest)
   }
 }
 
@@ -69,7 +69,7 @@ func handlePath(path string) []byte {
   exe, err := os.Executable()
   if err != nil {
     log.Println("os.Executable", err)
-    return responseMsg(ServerError)
+    return responseToBytes(ServerError)
   }
 
   exePath := filepath.Dir(exe)
@@ -79,11 +79,11 @@ func handlePath(path string) []byte {
   fInfo, err := os.Stat(targetPath)
   if err != nil {
     if os.IsNotExist(err) {
-      return responseMsg(NotFound)
+      return responseToBytes(NotFound)
     } else if os.IsPermission(err) {
-      return responseMsg(Forbidden)
+      return responseToBytes(Forbidden)
     } else {
-      return responseMsg(ServerError)
+      return responseToBytes(ServerError)
     }
   }
 
@@ -95,5 +95,5 @@ func handlePath(path string) []byte {
     Type: Mime(targetPath),
     Body: readAsset(targetPath)}
 
-  return responseMsg(res)
+  return responseToBytes(res)
 }
