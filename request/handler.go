@@ -16,6 +16,29 @@ type httpResponse struct {
 	Body []byte
 }
 
+type Response interface {
+  ToByte()
+}
+
+func (res *httpResponse) ToByte() []byte {
+  if res == nil {
+    return []byte{}
+  }
+
+	msgLines := []string{fmt.Sprintf("HTTP/1.1 %d", res.Code),
+		"Date: " + time.Now().String(),
+		"Server: \"Golang SimpleHTTPServer/0.1\"",
+		"Content-Type: " + res.Type,
+		"Content-Length: " + fmt.Sprint(len(res.Body)),
+		"Connection: Close",
+		"",
+		""}
+
+	resData := append([]byte(strings.Join(msgLines, "\r\n")), res.Body...)
+
+	return resData
+}
+
 var BadRequest = httpResponse{Code: 400,
 	Type: "text/html",
 	Body: readAsset("./public/400.html")}
@@ -32,21 +55,6 @@ var ServerError = httpResponse{Code: 500,
 	Type: "text/html",
 	Body: readAsset("./public/500.html")}
 
-func responseToBytes(res httpResponse) []byte {
-	msgLines := []string{fmt.Sprintf("HTTP/1.1 %d", res.Code),
-		"Date: " + time.Now().String(),
-		"Server: \"Golang SimpleHTTPServer/0.1\"",
-		"Content-Type: " + res.Type,
-		"Content-Length: " + fmt.Sprint(len(res.Body)),
-		"Connection: Close",
-		"",
-		""}
-
-	resData := append([]byte(strings.Join(msgLines, "\r\n")), res.Body...)
-
-	return resData
-}
-
 func readAsset(file string) []byte {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -61,7 +69,7 @@ func Handle(req httpRequest) []byte {
   case "GET":
     return handlePath(req.Target)
   default:
-    return responseToBytes(BadRequest)
+    return BadRequest.ToByte()
   }
 }
 
@@ -69,7 +77,7 @@ func handlePath(path string) []byte {
   exe, err := os.Executable()
   if err != nil {
     log.Println("os.Executable", err)
-    return responseToBytes(ServerError)
+    return ServerError.ToByte()
   }
 
   exePath := filepath.Dir(exe)
@@ -79,11 +87,11 @@ func handlePath(path string) []byte {
   fInfo, err := os.Stat(targetPath)
   if err != nil {
     if os.IsNotExist(err) {
-      return responseToBytes(NotFound)
+      return NotFound.ToByte()
     } else if os.IsPermission(err) {
-      return responseToBytes(Forbidden)
+      return Forbidden.ToByte()
     } else {
-      return responseToBytes(ServerError)
+      return ServerError.ToByte()
     }
   }
 
@@ -95,5 +103,5 @@ func handlePath(path string) []byte {
     Type: Mime(targetPath),
     Body: readAsset(targetPath)}
 
-  return responseToBytes(res)
+  return res.ToByte()
 }
